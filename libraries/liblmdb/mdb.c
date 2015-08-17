@@ -96,7 +96,11 @@ extern int cacheflush(char *addr, int nbytes, int cache);
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef _WIN32
+typedef int ssize_t;
+#else
 #include <unistd.h>
+#endif
 
 #if defined(__sun) || defined(ANDROID)
 /* Most platforms have posix_memalign, older may only have memalign */
@@ -4791,6 +4795,8 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	mode = FILE_ATTRIBUTE_NORMAL;
 	env->me_fd = CreateFile(dpath, oflags, FILE_SHARE_READ|FILE_SHARE_WRITE,
 		NULL, len, mode, NULL);
+	DWORD dwTemp;
+	DeviceIoControl(env->me_fd,FSCTL_SET_SPARSE,NULL,0,NULL,0,&dwTemp,NULL); /*This should fix the issue that pre-set map size would be allocated at once on Windows.*/
 #else
 	if (F_ISSET(flags, MDB_RDONLY))
 		oflags = O_RDONLY;
